@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻轨交通费用计算器</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .station-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .line-select {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .station-select {
+            flex: 2;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .line-select:focus, .station-select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pricing-rule {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .pricing-rule h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .route-info {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            color: #333;
+        }
+        
+        .line-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 15px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .line-1 { background-color: #e74c3c; }
+        .line-2 { background-color: #3498db; }
+        
+        .selected-station {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .line-color-1 { color: #e74c3c; font-weight: bold; }
+        .line-color-2 { color: #3498db; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚊 轻轨交通费用计算器</h1>
+        
+        <div class="pricing-rule">
+            <h3>💰 计价规则</h3>
+            <p>按乘坐里程计价：0-4km: 2元 | 4-8km: 3元 | 8-12km: 4元 | 12-17km: 5元 | 17-23km: 6元 | 23-30km: 7元 | 30-40km: 8元 | 40-55km: 9元 | 55km以上每增加20km增加1元</p>
+        </div>
+        
+        <div class="input-group">
+            <label for="startLine">🚉 起始站点：</label>
+            <div class="station-selector">
+                <select id="startLine" class="line-select" onchange="updateStationList('start')">
+                    <option value="">选择线路</option>
+                    <option value="1">1号线</option>
+                    <option value="2">2号线</option>
+                </select>
+                <select id="startStation" class="station-select" disabled>
+                    <option value="">请先选择线路</option>
+                </select>
+            </div>
+            <div id="startSelected" class="selected-station" style="display: none;"></div>
+        </div>
+        
+        <div class="input-group">
+            <label for="endLine">🎯 目的站点：</label>
+            <div class="station-selector">
+                <select id="endLine" class="line-select" onchange="updateStationList('end')">
+                    <option value="">选择线路</option>
+                    <option value="1">1号线</option>
+                    <option value="2">2号线</option>
+                </select>
+                <select id="endStation" class="station-select" disabled>
+                    <option value="">请先选择线路</option>
+                </select>
+            </div>
+            <div id="endSelected" class="selected-station" style="display: none;"></div>
+        </div>
+        
+        <button onclick="calculateFare()">🔍 计算费用</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        // 1号线站点列表
+        const line1Stations = [
+            "朝天门", "小什字", "较场口", "七星岗", "两路口", "跑岭", "大坪", "石油路", 
+            "歇台子", "石桥铺", "高庙村", "马家岩", "小龙坎", "沙坪坝", "杨公桥", 
+            "烈士墓", "磁器口", "石井坡", "双碑", "赖家桥", "微电园", "陈家桥", 
+            "大学城", "尖顶坡"
+        ];
+
+        // 2号线站点列表
+        const line2Stations = [
+            "较场口", "临江门", "黄花园", "大溪沟", "曾家岩", "牛角沱", "李子坝", 
+            "佛图关", "大坪", "袁家岗", "谢家湾", "杨家坪", "动物园", "大堰村", 
+            "马王场", "平安", "大渡口", "新山村", "天堂堡", "建桥", "金家湾", 
+            "刘家坝", "白居寺", "大江", "鱼洞"
+        ];
+
+        // 1号线距离数据
+        const line1Distances = {
+            "朝天门": {"小什字": 0.654, "较场口": 2.018, "七星岗": 2.873, "两路口": 4.297, "跑岭": 5.897, "大坪": 7.640, "石油路": 8.786, "歇台子": 9.860, "石桥铺": 11.164, "高庙村": 12.751, "马家岩": 13.934, "小龙坎": 15.019, "沙坪坝": 15.893, "杨公桥": 17.031, "烈士墓": 17.895, "磁器口": 18.919, "石井坡": 20.354, "双碑": 22.264, "赖家桥": 29.168, "微电园": 30.967, "陈家桥": 34.329, "大学城": 36.221, "尖顶坡": 37.762},
+            "小什字": {"朝天门": 0.654, "较场口": 1.361, "七星岗": 2.219, "两路口": 3.643, "跑岭": 5.243, "大坪": 6.986, "石油路": 8.132, "歇台子": 9.206, "石桥铺": 10.510, "高庙村": 12.097, "马家岩": 13.280, "小龙坎": 14.365, "沙坪坝": 15.239, "杨公桥": 16.377, "烈士墓": 17.241, "磁器口": 18.265, "石井坡": 19.700, "双碑": 21.610, "赖家桥": 28.514, "微电园": 30.313, "陈家桥": 33.675, "大学城": 35.567, "尖顶坡": 37.108},
+            "较场口": {"朝天门": 2.018, "小什字": 1.361, "七星岗": 0.858, "两路口": 2.282, "跑岭": 3.882, "大坪": 5.625, "石油路": 6.771, "歇台子": 7.845, "石桥铺": 9.149, "高庙村": 10.736, "马家岩": 11.919, "小龙坎": 13.004, "沙坪坝": 13.878, "杨公桥": 15.016, "烈士墓": 15.880, "磁器口": 16.904, "石井坡": 18.339, "双碑": 20.249, "赖家桥": 27.153, "微电园": 28.952, "陈家桥": 32.314, "大学城": 34.206, "尖顶坡": 35.747},
+            "七星岗": {"朝天门": 2.873, "小什字": 2.219, "较场口": 0.858, "两路口": 1.424, "跑岭": 3.024, "大坪": 4.767, "石油路": 5.913, "歇台子": 6.987, "石桥铺": 8.291, "高庙村": 9.878, "马家岩": 11.061, "小龙坎": 12.146, "沙坪坝": 13.020, "杨公桥": 14.158, "烈士墓": 15.022, "磁器口": 16.046, "石井坡": 17.481, "双碑": 19.391, "赖家桥": 26.295, "微电园": 28.094, "陈家桥": 31.456, "大学城": 33.348, "尖顶坡": 34.889},
+            "两路口": {"朝天门": 4.297, "小什字": 3.643, "较场口": 2.282, "七星岗": 1.424, "跑岭": 1.600, "大坪": 3.343, "石油路": 4.489, "歇台子": 5.563, "石桥铺": 6.867, "高庙村": 8.454, "马家岩": 9.637, "小龙坎": 10.722, "沙坪坝": 11.596, "杨公桥": 12.734, "烈士墓": 13.598, "磁器口": 14.622, "石井坡": 16.057, "双碑": 17.967, "赖家桥": 24.871, "微电园": 26.670, "陈家桥": 30.032, "大学城": 31.924, "尖顶坡": 33.465},
+            "跑岭": {"朝天门": 5.897, "小什字": 5.243, "较场口": 3.882, "七星岗": 3.024, "两路口": 1.600, "大坪": 1.743, "石油路": 2.889, "歇台子": 3.963, "石桥铺": 5.267, "高庙村": 6.854, "马家岩": 8.037, "小龙坎": 9.122, "沙坪坝": 9.996, "杨公桥": 11.134, "烈士墓": 11.998, "磁器口": 13.022, "石井坡": 14.457, "双碑": 16.367, "赖家桥": 23.271, "微电园": 25.070, "陈家桥": 28.432, "大学城": 30.324, "尖顶坡": 31.865},
+            "大坪": {"朝天门": 7.640, "小什字": 6.986, "较场口": 5.625, "七星岗": 4.767, "两路口": 3.343, "跑岭": 1.743, "石油路": 1.146, "歇台子": 2.220, "石桥铺": 3.524, "高庙村": 5.111, "马家岩": 6.294, "小龙坎": 7.379, "沙坪坝": 8.253, "杨公桥": 9.391, "烈士墓": 10.255, "磁器口": 11.279, "石井坡": 12.714, "双碑": 14.624, "赖家桥": 21.528, "微电园": 23.327, "陈家桥": 26.689, "大学城": 28.581, "尖顶坡": 30.122}
+        };
+
+        // 2号线距离数据
+        const line2Distances = {
+            "较场口": {"临江门": 0.579, "黄花园": 1.745, "大溪沟": 2.441, "曾家岩": 3.261, "牛角沱": 4.299, "李子坝": 5.290, "佛图关": 6.106, "大坪": 7.652, "袁家岗": 9.178, "谢家湾": 10.392, "杨家坪": 11.714, "动物园": 12.708, "大堰村": 13.754, "马王场": 14.901, "平安": 15.950, "大渡口": 17.080, "新山村": 18.242, "天堂堡": 19.020, "建桥": 20.912, "金家湾": 22.242, "刘家坝": 23.597, "白居寺": 25.302, "大江": 29.001, "鱼洞": 30.183},
+            "临江门": {"较场口": 0.579, "黄花园": 1.166, "大溪沟": 1.862, "曾家岩": 2.682, "牛角沱": 3.720, "李子坝": 4.711, "佛图关": 5.527, "大坪": 7.073, "袁家岗": 8.599, "谢家湾": 9.813, "杨家坪": 11.135, "动物园": 12.129, "大堰村": 13.175, "马王场": 14.322, "平安": 15.371, "大渡口": 16.501, "新山村": 17.663, "天堂堡": 18.441, "建桥": 20.333, "金家湾": 21.663, "刘家坝": 23.018, "白居寺": 24.723, "大江": 28.422, "鱼洞": 29.604},
+            "大坪": {"较场口": 7.652, "临江门": 7.073, "黄花园": 5.907, "大溪沟": 5.211, "曾家岩": 4.391, "牛角沱": 3.353, "李子坝": 2.362, "佛图关": 1.546, "袁家岗": 1.526, "谢家湾": 2.740, "杨家坪": 4.062, "动物园": 5.056, "大堰村": 6.102, "马王场": 7.249, "平安": 8.298, "大渡口": 9.428, "新山村": 10.590, "天堂堡": 11.368, "建桥": 13.260, "金家湾": 14.590, "刘家坝": 15.945, "白居寺": 17.650, "大江": 21.349, "鱼洞": 22.531}
+        };
+
+        // 当前选择的站点信息
+        let selectedStations = {
+            start: { line: null, station: null },
+            end: { line: null, station: null }
+        };
+
+        // 更新站点列表
+        function updateStationList(type) {
+            const lineSelect = document.getElementById(type + 'Line');
+            const stationSelect = document.getElementById(type + 'Station');
+            const selectedDiv = document.getElementById(type + 'Selected');
+            const selectedLine = lineSelect.value;
+
+            if (!selectedLine) {
+                stationSelect.innerHTML = '<option value="">请先选择线路</option>';
+                stationSelect.disabled = true;
+                selectedDiv.style.display = 'none';
+                selectedStations[type] = { line: null, station: null };
+                return;
+            }
+
+            // 清空并启用站点选择
+            stationSelect.innerHTML = '<option value="">请选择站点</option>';
+            stationSelect.disabled = false;
+
+            // 根据线路填充站点
+            const stations = selectedLine === '1' ? line1Stations : line2Stations;
+            stations.forEach(station => {
+                const option = new Option(station, station);
+                stationSelect.add(option);
+            });
+
+            // 更新选择信息
+            selectedStations[type].line = selectedLine;
+            selectedStations[type].station = null;
+            updateSelectedDisplay(type);
+        }
+
+        // 更新选择显示
+        function updateSelectedDisplay(type) {
+            const selectedDiv = document.getElementById(type + 'Selected');
+            const selection = selectedStations[type];
+            
+            if (selection.line && selection.station) {
+                const lineClass = selection.line === '1' ? 'line-color-1' : 'line-color-2';
+                selectedDiv.innerHTML = `已选择：<span class="${lineClass}">${selection.line}号线</span> - ${selection.station}`;
+                selectedDiv.style.display = 'block';
+            } else if (selection.line) {
+                const lineClass = selection.line === '1' ? 'line-color-1' : 'line-color-2';
+                selectedDiv.innerHTML = `已选择线路：<span class="${lineClass}">${selection.line}号线</span>`;
+                selectedDiv.style.display = 'block';
+            } else {
+                selectedDiv.style.display = 'none';
+            }
+        }
+
+        // 站点选择改变事件
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('startStation').addEventListener('change', function() {
+                selectedStations.start.station = this.value;
+                updateSelectedDisplay('start');
+            });
+            
+            document.getElementById('endStation').addEventListener('change', function() {
+                selectedStations.end.station = this.value;
+                updateSelectedDisplay('end');
+            });
+        });
+
+        // 根据里程计算费用
+        function calculatePrice(distance) {
+            if (distance <= 4) return 2;
+            if (distance <= 8) return 3;
+            if (distance <= 12) return 4;
+            if (distance <= 17) return 5;
+            if (distance <= 23) return 6;
+            if (distance <= 30) return 7;
+            if (distance <= 40) return 8;
+            if (distance <= 55) return 9;
+            
+            // 55公里以上，每增加20公里增加1元
+            const extraDistance = distance - 55;
+            const extraFare = Math.ceil(extraDistance / 20);
+            return 9 + extraFare;
+        }
+
+        // 获取两站之间的距离
+        function getDistance(start, end, line) {
+            const distances = line === '1' ? line1Distances : line2Distances;
+            return distances[start] && distances[start][end] ? distances[start][end] : null;
+        }
+
+        // 查找最短路径
+        function findShortestPath(startInfo, endInfo) {
+            const { line: startLine, station: startStation } = startInfo;
+            const { line: endLine, station: endStation } = endInfo;
+
+            if (startStation === endStation) {
+                return { distance: 0, route: [startStation], lines: [], price: 2 };
+            }
+
+            // 同一条线路
+            if (startLine === endLine) {
+                const distance = getDistance(startStation, endStation, startLine);
+                if (distance) {
+                    return {
+                        distance: distance,
+                        route: [startStation, endStation],
+                        lines: [startLine],
+                        transferStations: [],
+                        price: calculatePrice(distance)
+                    };
+                }
+            }
+
+            // 需要换乘
+            const transferStations = ["较场口", "大坪"];
+            let shortestDistance = Infinity;
+            let bestRoute = null;
+
+            for (let transfer of transferStations) {
+                if (transfer === startStation || transfer === endStation) continue;
+
+                const dist1 = getDistance(startStation, transfer, startLine);
+                const dist2 = getDistance(transfer, endStation, endLine);
+
+                if (dist1 && dist2) {
+                    const totalDistance = dist1 + dist2;
+                    if (totalDistance < shortestDistance) {
+                        shortestDistance = totalDistance;
+                        bestRoute = {
+                            distance: totalDistance,
+                            route: [startStation, transfer, endStation],
+                            lines: [startLine, endLine],
+                            transferStations: [transfer],
+                            price: calculatePrice(totalDistance)
+                        };
+                    }
+                }
+            }
+
+            return bestRoute;
+        }
+
+        // 计算费用主函数
+        function calculateFare() {
+            const startInfo = selectedStations.start;
+            const endInfo = selectedStations.end;
+            const resultDiv = document.getElementById('result');
+
+            if (!startInfo.station || !endInfo.station) {
+                alert('请完整选择起始站点和目的站点！');
+                return;
+            }
+
+            if (startInfo.station === endInfo.station) {
+                resultDiv.innerHTML = `
+                    <h3>🚫 起点和终点相同</h3>
+                    <p>请选择不同的起始站点和目的站点。</p>
+                `;
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            const result = findShortestPath(startInfo, endInfo);
+            
+            if (!result) {
+                resultDiv.innerHTML = `
+                    <h3>❌ 无法找到路径</h3>
+                    <p>从 <strong>${startInfo.station}</strong> 到 <strong>${endInfo.station}</strong> 暂无可达路径。</p>
+                `;
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            let routeInfo = '';
+            if (result.transferStations.length > 0) {
+                routeInfo = `
+                    <div class="route-info">
+                        <h4>🔄 换乘路线</h4>
+                        <p><strong>路径：</strong>${result.route.join(' → ')}</p>
+                        <p><strong>换乘站：</strong>${result.transferStations.join(', ')}</p>
+                        <p><strong>涉及线路：</strong>
+                            <span class="line-badge line-${result.lines[0]}">${result.lines[0]}号线</span>
+                            <span class="line-badge line-${result.lines[1]}">${result.lines[1]}号线</span>
+                        </p>
+                    </div>
+                `;
+            } else {
+                const lineClass = result.lines[0] === '1' ? 'line-1' : 'line-2';
+                routeInfo = `
+                    <div class="route-info">
+                        <h4>🚇 直达路线</h4>
+                        <p><strong>线路：</strong><span class="line-badge ${lineClass}">${result.lines[0]}号线</span></p>
+                        <p><strong>路径：</strong>${result.route.join(' → ')}</p>
+                    </div>
+                `;
+            }
+
+            resultDiv.innerHTML = `
+                <h3>💰 费用计算结果</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+                    <div style="font-size: 24px; font-weight: bold;">
+                        票价：<span style="color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">${result.price}元</span>
+                    </div>
+                    <div style="font-size: 18px;">
+                        距离：<span style="color: #fff;">${result.distance.toFixed(2)}公里</span>
+                    </div>
+                </div>
+                ${routeInfo}
+                <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 5px; font-size: 14px;">
+                    <strong>从</strong> ${startInfo.station} <strong>到</strong> ${endInfo.station}
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
