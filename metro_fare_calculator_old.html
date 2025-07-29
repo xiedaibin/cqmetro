@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻轨交通费用计算器</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .station-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .line-select {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .station-select {
+            flex: 2;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .line-select:focus,
+        .station-select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pricing-rule {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .pricing-rule h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .route-info {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            color: #333;
+        }
+
+        .line-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 15px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .line-1 {
+            background-color: #e74c3c;
+        }
+
+        .line-2 {
+            background-color: #3498db;
+        }
+
+        .line-3 {
+            background-color: #f1c40f;
+        }
+
+        .selected-station {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .line-color-1 {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .line-color-2 {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .line-color-3 {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚊 轻轨交通费用计算器</h1>
+
+        <div class="pricing-rule">
+            <h3>💰 计价规则</h3>
+            <p>按乘坐里程计价：0-4km: 2元 | 4-8km: 3元 | 8-12km: 4元 | 12-17km: 5元 | 17-23km: 6元 | 23-30km: 7元 | 30-40km: 8元 |
+                40-55km: 9元 | 55km以上每增加20km增加1元</p>
+        </div>
+
+        <div class="input-group">
+            <label for="startLine">🚉 起始站点：</label>
+            <div class="station-selector">
+                <select id="startLine" class="line-select" onchange="updateStationList('start')">
+                    <option value="">选择线路</option>
+                    <option value="1">1号线</option>
+                    <option value="2">2号线</option>
+                    <option value="3">3号线</option>
+                </select>
+                <select id="startStation" class="station-select" disabled>
+                    <option value="">请先选择线路</option>
+                </select>
+            </div>
+            <div id="startSelected" class="selected-station" style="display: none;"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="endLine">🎯 目的站点：</label>
+            <div class="station-selector">
+                <select id="endLine" class="line-select" onchange="updateStationList('end')">
+                    <option value="">选择线路</option>
+                    <option value="1">1号线</option>
+                    <option value="2">2号线</option>
+                    <option value="3">3号线</option>
+                </select>
+                <select id="endStation" class="station-select" disabled>
+                    <option value="">请先选择线路</option>
+                </select>
+            </div>
+            <div id="endSelected" class="selected-station" style="display: none;"></div>
+        </div>
+
+        <button onclick="calculateFare()">🔍 计算费用</button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        
+        // 1号线距离数据
+        const line1Distances = {
+            "朝天门": {"小什字": 1.423, "较场口": 2.846, "七星岗": 4.269, "两路口": 5.692, "鹅岭": 7.115, "大坪": 8.538, "石油路": 9.961, "歇台子": 11.384, "石桥铺": 12.807, "高庙村": 14.230, "马家岩": 15.653, "小龙坎": 17.076, "沙坪坝": 18.499, "杨公桥": 19.922, "烈士墓": 21.345, "磁器口": 22.768, "石井坡": 24.191, "双碑": 25.614, "赖家桥": 29.172, "微电园": 30.595, "陈家桥": 32.730, "大学城": 34.438, "尖顶坡": 35.861},
+            "小什字": {"朝天门": 1.423, "较场口": 1.423, "七星岗": 2.846, "两路口": 4.269, "鹅岭": 5.692, "大坪": 7.115, "石油路": 8.538, "歇台子": 9.961, "石桥铺": 11.384, "高庙村": 12.807, "马家岩": 14.230, "小龙坎": 15.653, "沙坪坝": 17.076, "杨公桥": 18.499, "烈士墓": 19.922, "磁器口": 21.345, "石井坡": 22.768, "双碑": 24.191, "赖家桥": 27.749, "微电园": 29.172, "陈家桥": 31.307, "大学城": 33.015, "尖顶坡": 34.438},
+            };
+
+        // 添加1号线站点和连接
+        const line1Stations = Object.keys(line1Distances);
+
+        // 2号线距离数据
+        const line2Distances = {
+            };
+        // 添加2号线站点和连接
+        const line2Stations = Object.keys(line2Distances);
+            
+
+        // 3号线距离数据
+        const line3Distances = {
+           };
+        // 添加4号线站点和连接
+        const line3Stations = Object.keys(line3Distances);
+            
+
+        // 4 号线距离数据
+        const line4Distances = {
+        };
+        // 添加4号线站点和连接
+        const line4Stations = Object.keys(line4Distances);
+            
+
+        // 5 号线距离数据
+        const line5Distances = {
+        };
+        // 添加9号线站点和连接
+        const line5Stations = Object.keys(line5Distances);
+
+        // 9 号线距离数据
+        const line9Distances = {};
+
+        // 添加9号线站点和连接
+        const line9Stations = Object.keys(line9Distances);
+            
+
+        // 10 号线距离数据
+        const line10Distances = {
+        };
+        //10号线
+        const line10Stations = Object.keys(line10Distances);
+            
+
+        // 18 号线完整距离数据
+        const line18Distances = {
+        };
+        //18号线
+        const line18Stations = Object.keys(line18Distances);
+            
+
+        // 国博线完整距离数据
+        const linegbxDistances = 
+        {
+        };
+        //国博线号线
+        const linegbxStations = Object.keys(linegbxDistances);
+            
+
+        //环线完整数据
+        const linehuanDistances ={
+            };
+        //环线
+        const linehuanStations = Object.keys(linehuanDistances);
+            
+        
+
+
+        
+
+        // 当前选择的站点信息
+        let selectedStations = {
+            start: { line: null, station: null },
+            end: { line: null, station: null }
+        };
+
+        // 更新站点列表
+        function updateStationList(type) {
+            const lineSelect = document.getElementById(type + 'Line');
+            const stationSelect = document.getElementById(type + 'Station');
+            const selectedDiv = document.getElementById(type + 'Selected');
+            const selectedLine = lineSelect.value;
+
+            if (!selectedLine) {
+                stationSelect.innerHTML = '<option value="">请先选择线路</option>';
+                stationSelect.disabled = true;
+                selectedDiv.style.display = 'none';
+                selectedStations[type] = { line: null, station: null };
+                return;
+            }
+
+            // 清空并启用站点选择
+            stationSelect.innerHTML = '<option value="">请选择站点</option>';
+            stationSelect.disabled = false;
+
+            // 根据线路填充站点
+            let stations;
+            if (selectedLine === '1') stations = line1Stations;
+            else if (selectedLine === '2') stations = line2Stations;
+            else if (selectedLine === '3') stations = line3Stations;
+            else stations = [];
+            stations.forEach(station => {
+                const option = new Option(station, station);
+                stationSelect.add(option);
+            });
+
+            // 更新选择信息
+            selectedStations[type].line = selectedLine;
+            selectedStations[type].station = null;
+            updateSelectedDisplay(type);
+        }
+
+        // 更新选择显示
+        function updateSelectedDisplay(type) {
+            const selectedDiv = document.getElementById(type + 'Selected');
+            const selection = selectedStations[type];
+
+            if (selection.line && selection.station) {
+                let lineClass = '';
+                if (selection.line === '1') lineClass = 'line-color-1';
+                else if (selection.line === '2') lineClass = 'line-color-2';
+                else if (selection.line === '3') lineClass = 'line-color-3';
+                selectedDiv.innerHTML = `已选择：<span class="${lineClass}">${selection.line}号线</span> - ${selection.station}`;
+                selectedDiv.style.display = 'block';
+            } else if (selection.line) {
+                let lineClass = '';
+                if (selection.line === '1') lineClass = 'line-color-1';
+                else if (selection.line === '2') lineClass = 'line-color-2';
+                else if (selection.line === '3') lineClass = 'line-color-3';
+                selectedDiv.innerHTML = `已选择线路：<span class="${lineClass}">${selection.line}号线</span>`;
+                selectedDiv.style.display = 'block';
+            } else {
+                selectedDiv.style.display = 'none';
+            }
+        }
+
+        // 站点选择改变事件
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('startStation').addEventListener('change', function () {
+                selectedStations.start.station = this.value;
+                updateSelectedDisplay('start');
+            });
+
+            document.getElementById('endStation').addEventListener('change', function () {
+                selectedStations.end.station = this.value;
+                updateSelectedDisplay('end');
+            });
+        });
+
+        // 根据里程计算费用
+        function calculatePrice(distance) {
+            if (distance <= 4) return 2;
+            if (distance <= 8) return 3;
+            if (distance <= 12) return 4;
+            if (distance <= 17) return 5;
+            if (distance <= 23) return 6;
+            if (distance <= 30) return 7;
+            if (distance <= 40) return 8;
+            if (distance <= 55) return 9;
+
+            // 55公里以上，每增加20公里增加1元
+            const extraDistance = distance - 55;
+            const extraFare = Math.ceil(extraDistance / 20);
+            return 9 + extraFare;
+        }
+
+        // 获取两站之间的距离
+        function getDistance(start, end, line) {
+            let distances;
+            if (line === '1') distances = line1Distances;
+            else if (line === '2') distances = line2Distances;
+            else if (line === '3') distances = line3Distances;
+            else return null;
+            return distances[start] && distances[start][end] ? distances[start][end] : null;
+        }
+
+        // 构建地铁网络图
+        function buildMetroGraph() {
+            const graph = {};
+
+            
+            addLineToGraph(graph, '1', line1Stations, line1Distances);
+
+            addLineToGraph(graph, '2', line2Stations, line2Distances);
+
+            // 添加3号线站点和连接
+            addLineToGraph(graph, '3', line3Stations, line3Distances);
+
+            addLineToGraph(graph, '4', line4Stations, line4Distances);
+
+           addLineToGraph(graph, '5', line5Stations, line5Distances);
+
+            addLineToGraph(graph, '6', line6Stations, line6Distances);
+
+            addLineToGraph(graph, '9', line9Stations, line9Distances);
+
+            addLineToGraph(graph, '10', line10Stations, line10Distances); 
+
+            addLineToGraph(graph, '18', line18Stations, line18Distances); 
+           
+            addLineToGraph(graph, '国博', linegbxStations, linegbxDistances); 
+            
+            addLineToGraph(graph, '环', linehuanStations, linehuanDistances); 
+
+            return graph;
+        }
+
+        // 将单条线路添加到图中
+        function addLineToGraph(graph, lineNumber, stations, distances) {
+            // 为每个站点创建节点
+            stations.forEach(station => {
+                const nodeId = `${lineNumber}-${station}`;
+                if (!graph[nodeId]) {
+                    graph[nodeId] = { station, line: lineNumber, neighbors: {} };
+                }
+            });
+
+            // 添加同线路站点间的连接
+            for (const startStation in distances) {
+                const startNodeId = `${lineNumber}-${startStation}`;
+                for (const endStation in distances[startStation]) {
+                    const endNodeId = `${lineNumber}-${endStation}`;
+                    const distance = distances[startStation][endStation];
+
+                    try {
+                        // 添加双向连接
+                        graph[startNodeId].neighbors[endNodeId] = distance;
+                        graph[endNodeId].neighbors[startNodeId] = distance;
+                    } catch (error) {
+                        console.log(`Error while adding connection: ${error}`);
+                        console.log(`End node ID: ${endNodeId}`);
+                    }
+                }
+            }
+        }
+
+        // 查找换乘站并添加跨线连接
+        function addTransferConnections(graph) {
+            // 按站点名称分组的所有节点
+            const stationsByName = {};
+
+            // 遍历所有节点，按站点名称分组
+            for (const nodeId in graph) {
+                const node = graph[nodeId];
+                if (!stationsByName[node.station]) {
+                    stationsByName[node.station] = [];
+                }
+                stationsByName[node.station].push(nodeId);
+            }
+
+            // 对于有多个线路经过的站点，添加跨线连接（换乘）
+            for (const stationName in stationsByName) {
+                const nodes = stationsByName[stationName];
+                if (nodes.length > 1) {
+                    // 该站点是换乘站
+                    for (let i = 0; i < nodes.length; i++) {
+                        for (let j = i + 1; j < nodes.length; j++) {
+                            const nodeA = nodes[i];
+                            const nodeB = nodes[j];
+
+                            // 添加零成本的换乘连接
+                            graph[nodeA].neighbors[nodeB] = 0;
+                            graph[nodeB].neighbors[nodeA] = 0;
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * 优先队列类
+         * 用于Dijkstra算法中确保总是处理距离最小的未访问节点
+         * 通过优先级排序，保证队列头部始终是优先级最高（距离最小）的元素
+         */
+        class PriorityQueue {
+            /**
+             * 构造函数
+             * 初始化优先队列，elements数组存储队列元素
+             */
+            constructor() {
+                this.elements = [];  // 存储队列元素，每个元素包含nodeId和priority
+            }
+
+            /**
+             * 入队操作
+             * 将节点加入队列，并根据优先级重新排序
+             * 
+             * @param {string} nodeId - 节点ID
+             * @param {number} priority - 优先级（距离值）
+             */
+            enqueue(nodeId, priority) {
+                // 将新元素添加到队列末尾
+                this.elements.push({ nodeId, priority });
+                // 重新排序，确保优先级最高的元素在队列头部
+                this.sort();
+            }
+
+            /**
+             * 出队操作
+             * 取出并返回队列头部元素（优先级最高的元素）
+             * 
+             * @returns {string} 返回优先级最高的节点ID
+             */
+            dequeue() {
+                // 取出队列头部元素并返回其nodeId
+                return this.elements.shift().nodeId;
+            }
+
+            /**
+             * 检查队列是否为空
+             * 
+             * @returns {boolean} 如果队列为空返回true，否则返回false
+             */
+            isEmpty() {
+                return this.elements.length === 0;
+            }
+
+            /**
+             * 队列排序
+             * 根据优先级（priority）对队列元素进行升序排序
+             * 确保距离最小的元素始终在队列头部
+             */
+            sort() {
+                // 按优先级升序排序，距离小的优先级高
+                this.elements.sort((a, b) => a.priority - b.priority);
+            }
+        }
+
+        /**
+         * Dijkstra最短路径算法实现
+         * 用于在地铁网络中寻找从起点到终点的最短路径
+         * 
+         * @param {Object} graph - 地铁网络图对象，包含所有站点和连接关系
+         * @param {string} startLine - 起始线路编号（如 '1', '2', '3'）
+         * @param {string} startStation - 起始站点名称
+         * @param {string} endLine - 目标线路编号
+         * @param {string} endStation - 目标站点名称
+         * @returns {Object|null} 返回路径信息对象，包含距离、路径、线路、换乘站点和票价；如果无法找到路径则返回null
+         */
+        function dijkstra(graph, startLine, startStation, endLine, endStation) {
+            // 构造起始和目标节点的唯一标识符（格式：线路号-站点名）
+            const startNodeId = `${startLine}-${startStation}`;
+            const endNodeId = `${endLine}-${endStation}`;
+
+            // 特殊情况处理：如果起点和终点相同，直接返回结果
+            if (startNodeId === endNodeId) {
+                return {
+                    distance: 0,           // 距离为0
+                    route: [startStation],  // 路径只包含起始站点
+                    lines: [startLine],     // 只涉及起始线路
+                    transferStations: [],   // 无换乘站点
+                    price: 2               // 最低票价2元
+                };
+            }
+
+            // ========== 初始化阶段 ==========
+            // distances: 存储从起点到每个节点的最短距离
+            const distances = {};
+            // predecessors: 存储最短路径中每个节点的前驱节点，用于路径重构
+            const predecessors = {};
+            // visited: 标记已访问的节点，避免重复处理
+            const visited = {};
+            //debugger
+            // 初始化所有节点的距离为无穷大
+            for (const nodeId in graph) {
+                distances[nodeId] = Infinity;
+            }
+            // 起点到自身的距离为0
+            distances[startNodeId] = 0;
+
+            // 创建优先队列，用于确保总是处理距离最小的未访问节点
+            const priorityQueue = new PriorityQueue();
+            // 将起点加入队列，优先级为0
+            priorityQueue.enqueue(startNodeId, 0);
+
+            // ========== Dijkstra算法主循环 ==========
+            while (!priorityQueue.isEmpty()) {
+                // 从优先队列中取出距离最小的未访问节点
+                const currentNodeId = priorityQueue.dequeue();
+
+                // 如果到达目标节点，结束搜索
+                //if (currentNodeId === endNodeId) break;
+                // 如果当前节点已访问过，跳过
+                if (visited[currentNodeId]) continue;
+
+                // 标记当前节点为已访问
+                visited[currentNodeId] = true;
+
+                // 获取当前节点的信息
+                const currentNode = graph[currentNodeId];
+                
+                // 遍历当前节点的所有邻居节点
+                for (const neighborId in currentNode.neighbors) {
+                    // 获取到邻居节点的距离
+                    const distance = currentNode.neighbors[neighborId];
+                    // 计算通过当前节点到达邻居节点的总距离
+                    const totalDistance = distances[currentNodeId] + distance;
+
+                    // 松弛操作：如果通过当前节点到达邻居的距离更短，则更新
+                    if (totalDistance < distances[neighborId]) {
+                        // 更新邻居节点的最短距离
+                        distances[neighborId] = totalDistance;
+                        // 记录邻居节点的前驱节点为当前节点
+                        predecessors[neighborId] = currentNodeId;
+                        
+                        // 将邻居节点加入优先队列，优先级为新的距离
+                        priorityQueue.enqueue(neighborId, totalDistance);
+                    }
+                }
+            }
+            
+
+            // ========== 路径验证和重构 ==========
+            // 检查是否找到路径（目标节点的距离不是无穷大）
+            if (distances[endNodeId] === Infinity) {
+                return null; // 无法找到路径
+            }
+            //console.log("前驱节点:",predecessors);
+            // 调用路径重构函数，返回完整的路径信息
+            return reconstructPath(graph, predecessors, startNodeId, endNodeId, distances[endNodeId]);
+        }
+
+        /**
+         * 重构路径信息函数
+         * 根据Dijkstra算法计算出的前驱节点数组，重构完整的路径信息
+         * 
+         * @param {Object} graph - 地铁网络图对象
+         * @param {Object} predecessors - 前驱节点数组，记录最短路径中每个节点的前驱
+         * @param {string} startNodeId - 起始节点ID
+         * @param {string} endNodeId - 目标节点ID
+         * @param {number} totalDistance - 总距离
+         * @returns {Object} 返回包含完整路径信息的对象
+         */
+        function reconstructPath(graph, predecessors, startNodeId, endNodeId, totalDistance) {
+            // 存储完整的节点路径（从起点到终点）
+            const path = [];
+            // 从终点开始回溯
+            let currentNodeId = endNodeId;
+
+            // ========== 路径回溯阶段 ==========
+            // 通过前驱节点数组，从终点回溯到起点，构建完整路径
+            while (currentNodeId) {
+                // 将当前节点添加到路径开头（因为是从终点往起点回溯）
+                path.unshift(currentNodeId);
+                // 获取当前节点的前驱节点，继续回溯
+                currentNodeId = predecessors[currentNodeId];
+            }
+
+            // ========== 信息提取阶段 ==========
+    
+            // lines: 存储涉及的线路编号
+            const lines = [];
+            // transferStations: 存储换乘站点名称
+            const transferStations = [];
+
+            // 遍历完整路径，提取各种信息
+            path.forEach((nodeId, index) => {
+                // 获取当前节点的详细信息
+                const node = graph[nodeId];
+
+                // 记录使用的线路（避免重复添加同一线路）
+                if (!lines.includes(node.line)) {
+                    //debugger
+                    lines.push(node.line);
+                }
+
+                // 检测换乘站点
+                if (index > 0) {
+                    // 获取前一个节点
+                    const prevNode = graph[path[index - 1]];
+                    // 如果前一个节点和当前节点属于不同线路，说明发生了换乘
+                    // 优化：如果当前节点是终点，不计入换乘站
+                    if (prevNode.line !== node.line && index !== path.length - 1) {
+                        // 将当前站点标记为换乘站点
+                        transferStations.push(node.station);
+                    }
+                }
+            });
+
+           
+            // route: 存储完整的站点名称序列
+            const route = getFullRoute(graph, path[0], path[path.length - 1], predecessors);
+
+            // ========== 结果封装阶段 ==========
+            // 根据总距离计算票价
+            const price = calculatePrice(totalDistance);
+
+            // 优化路径输出：在换乘节点后加上换乘图标
+            let routeWithTransferIcon = [];
+            for (let i = 0; i < route.length; i++) {
+                routeWithTransferIcon.push(route[i]);
+                // 如果当前站点是换乘站点，则加上图标
+                if (transferStations.includes(route[i])) {
+                    routeWithTransferIcon[routeWithTransferIcon.length - 1] += '🔄';
+                }
+            }
+
+            // 返回完整的路径信息对象
+            return {
+                distance: totalDistance,        // 总距离（公里）
+                route: routeWithTransferIcon,  // 站点序列（带换乘图标）
+                lines: lines,                  // 涉及的线路
+                transferStations: transferStations,  // 换乘站点
+                price: price
+            };
+        }
+
+         // 优化路径回溯，确保route为完整路径
+        // 由于predecessors可能因换乘等原因丢失部分节点，这里采用BFS方式从起点到终点重新遍历graph，确保路径完整
+        function getFullRoute(graph, startNodeId, endNodeId, predecessors) {
+            // 先用predecessors回溯出节点序列
+            let nodePath = [];
+            let current = endNodeId;
+            while (current) {
+                nodePath.unshift(current);
+                current = predecessors[current];
+            }
+            // 如果只有一个节点或为空，直接返回
+            if (nodePath.length <= 1) return nodePath.map(id => graph[id].station);
+
+            // 重新遍历，补全中间缺失的节点（如同一线路上被跳过的站点）
+            let fullRoute = [];
+            for (let i = 0; i < nodePath.length - 1; i++) {
+                const from = nodePath[i];
+                const to = nodePath[i + 1];
+                const fromNode = graph[from];
+                const toNode = graph[to];
+                // 如果是同一线路，且有直接相邻关系，补全中间站点
+                if (fromNode.line === toNode.line) {
+                    // 获取该线路所有站点
+                    let stations;
+                    if (fromNode.line === '1') stations = line1Stations;
+                    else if (fromNode.line === '2') stations = line2Stations;
+                    else if (fromNode.line === '3') stations = line3Stations;
+                    // 找到from和to在该线路的索引
+                    const idxFrom = stations.indexOf(fromNode.station);
+                    const idxTo = stations.indexOf(toNode.station);
+                    if (idxFrom !== -1 && idxTo !== -1) {
+                        // 方向：正向或反向
+                        const step = idxTo > idxFrom ? 1 : -1;
+                        for (let k = idxFrom; k !== idxTo; k += step) {
+                            fullRoute.push(stations[k]);
+                        }
+                    } else {
+                        // 找不到索引，直接加from
+                        fullRoute.push(fromNode.station);
+                    }
+                } else {
+                    // 换乘，直接加from
+                    fullRoute.push(fromNode.station);
+                }
+            }
+            // 最后加上终点
+            fullRoute.push(graph[nodePath[nodePath.length - 1]].station);
+
+            // 去重（防止因换乘重复）
+            let dedupedRoute = [];
+            for (let s of fullRoute) {
+                if (dedupedRoute.length === 0 || dedupedRoute[dedupedRoute.length - 1] !== s) {
+                    dedupedRoute.push(s);
+                }
+            }
+            return dedupedRoute;
+        }
+
+
+        // 然后，替换原有的findShortestPath函数
+        function findShortestPath(startInfo, endInfo) {
+            const { line: startLine, station: startStation } = startInfo;
+            const { line: endLine, station: endStation } = endInfo;
+
+            // 构建图并添加换乘连接
+            const graph = buildMetroGraph();
+            addTransferConnections(graph);
+            // 使用Dijkstra算法查找最短路径
+            var result = dijkstra(graph, startLine, startStation, endLine, endStation);
+            return result;
+        }
+        // 计算费用主函数
+        function calculateFare() {
+            const startInfo = selectedStations.start;
+            const endInfo = selectedStations.end;
+            const resultDiv = document.getElementById('result');
+
+            if (!startInfo.station || !endInfo.station) {
+                alert('请完整选择起始站点和目的站点！');
+                return;
+            }
+
+            if (startInfo.station === endInfo.station) {
+                resultDiv.innerHTML = `
+                    <h3>🚫 起点和终点相同</h3>
+                    <p>请选择不同的起始站点和目的站点。</p>
+                `;
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            const result = findShortestPath(startInfo, endInfo);
+
+            if (!result) {
+                resultDiv.innerHTML = `
+                    <h3>❌ 无法找到路径</h3>
+                    <p>从 <strong>${startInfo.station}</strong> 到 <strong>${endInfo.station}</strong> 暂无可达路径。</p>
+                `;
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            let routeInfo = '';
+            if (result.transferStations.length > 0) {
+                routeInfo = `
+                    <div class="route-info">
+                        <h4>🔄 换乘路线</h4>
+                        <p><strong>路径：</strong>${result.route.join(' → ')}</p>
+                        <p><strong>换乘站：</strong>${result.transferStations.join(', ')}</p>
+                        <p><strong>涉及线路：</strong>
+                            <span class="line-badge line-${result.lines[0]}">${result.lines[0]}号线</span>
+                            <span class="line-badge line-${result.lines[1]}">${result.lines[1]}号线</span>
+                        </p>
+                    </div>
+                `;
+            } else {
+                const lineClass = result.lines[0] === '1' ? 'line-1' : result.lines[0] === '2' ? 'line-2' : 'line-3';
+                routeInfo = `
+                    <div class="route-info">
+                        <h4>🚇 直达路线</h4>
+                        <p><strong>线路：</strong><span class="line-badge ${lineClass}">${result.lines[0]}号线</span></p>
+                        <p><strong>路径：</strong>${result.route.join(' → ')}</p>
+                    </div>
+                `;
+            }
+
+            resultDiv.innerHTML = `
+                <h3>💰 费用计算结果</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+                    <div style="font-size: 24px; font-weight: bold;">
+                        票价：<span style="color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">${result.price}元</span>
+                    </div>
+                    <div style="font-size: 18px;">
+                        距离：<span style="color: #fff;">${result.distance.toFixed(2)}公里</span>
+                    </div>
+                </div>
+                ${routeInfo}
+                <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 5px; font-size: 14px;">
+                    <strong>从</strong> ${startInfo.station} <strong>到</strong> ${endInfo.station}
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
